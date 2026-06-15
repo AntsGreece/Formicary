@@ -27,7 +27,7 @@ const kindOf = (l) => l.type || 'sale'
 // Word shown when a listing is closed out, by type
 const closedWord = (type) => (type === 'wanted' ? 'found' : type === 'list' ? 'closed' : 'sold')
 // Reports needed before a listing is auto-covered with a "reported" banner
-const REPORT_THRESHOLD = 5
+const REPORT_THRESHOLD = 3
 
 /* --------------------------------------------------------------------- app */
 export default function App() {
