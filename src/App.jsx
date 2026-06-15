@@ -143,7 +143,7 @@ export default function App() {
           <div>
             <div className="wordmark">
               <h1>Ant Sale International</h1>
-              <span className="tag">Ant&nbsp;·&nbsp;Colony&nbsp;Exchange</span>
+              <span className="tag">Ant&nbsp;·&nbsp;Marketplace</span>
             </div>
             <p className="sub">
               Browse ant queens, colonies and equipment from across the world! This is a free-to-use ant
