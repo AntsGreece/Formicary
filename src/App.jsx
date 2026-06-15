@@ -987,8 +987,8 @@ function NewListing({ user, existing, type = 'sale', onDone }) {
         return
       }
     } else {
-      if (!f.genus.trim() || f.price === '' || !f.contact.trim()) {
-        setErr('Genus, price and contact are required.')
+      if (!f.genus.trim() || !f.contact.trim()) {
+        setErr('Genus and contact are required.')
         return
       }
     }
