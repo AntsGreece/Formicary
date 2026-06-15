@@ -34,6 +34,8 @@ export default function App() {
   const [detail, setDetail] = useState(null) // listing object or null
   const [showForm, setShowForm] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
+  const [mine, setMine] = useState(false) // filter: only my listings
+  const [editing, setEditing] = useState(null) // listing being edited, or null
 
   // auth session
   useEffect(() => {
@@ -65,6 +67,7 @@ export default function App() {
         setDetail(null)
         setShowForm(false)
         setShowAuth(false)
+        setEditing(null)
       }
     }
     document.addEventListener('keydown', onKey)
@@ -76,9 +79,13 @@ export default function App() {
     return ['All', ...Array.from(set).sort()]
   }, [listings])
 
+  const mineActive = mine && !!session
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
+    const uid = session?.user?.id
     return listings.filter((l) => {
+      if (mineActive && l.user_id !== uid) return false
       if (genus !== 'All' && l.genus !== genus) return false
       if (!q) return true
       const hay = [l.genus, l.species, l.common, l.locality, l.keeper, (l.tags || []).join(' '), l.stage]
@@ -86,11 +93,46 @@ export default function App() {
         .toLowerCase()
       return hay.includes(q)
     })
-  }, [listings, query, genus])
+  }, [listings, query, genus, mineActive, session])
 
   function handleListClick() {
-    if (session) setShowForm(true)
-    else setShowAuth(true)
+    if (session) {
+      setEditing(null)
+      setShowForm(true)
+    } else setShowAuth(true)
+  }
+
+  function closeForm() {
+    setShowForm(false)
+    setEditing(null)
+  }
+
+  async function deleteListing(l) {
+    if (!window.confirm('Delete this listing permanently? This cannot be undone.')) return
+    const { error } = await supabase.from('listings').delete().eq('id', l.id)
+    if (error) {
+      alert('Could not delete: ' + error.message)
+      return
+    }
+    setDetail(null)
+    await loadListings()
+  }
+
+  async function toggleSold(l) {
+    const { error } = await supabase.from('listings').update({ sold: !l.sold }).eq('id', l.id)
+    if (error) {
+      alert('Could not update: ' + error.message)
+      return
+    }
+    const updated = { ...l, sold: !l.sold }
+    setDetail((d) => (d && d.id === l.id ? updated : d))
+    await loadListings()
+  }
+
+  function editListing(l) {
+    setDetail(null)
+    setEditing(l)
+    setShowForm(true)
   }
 
   return (
@@ -100,7 +142,7 @@ export default function App() {
         <div className="head-in">
           <div>
             <div className="wordmark">
-              <h1>Formicary</h1>
+              <h1>Ant Sale International</h1>
               <span className="tag">Ant&nbsp;·&nbsp;Colony&nbsp;Exchange</span>
             </div>
             <p className="sub">
@@ -144,6 +186,15 @@ export default function App() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
+          {session && (
+            <button
+              className={'chip toggle' + (mineActive ? ' on' : '')}
+              onClick={() => setMine((v) => !v)}
+              title="Show only the listings you posted"
+            >
+              {mineActive ? '★ My listings' : '☆ My listings'}
+            </button>
+          )}
           <span className="count">
             {loading ? 'Loading…' : `${filtered.length} specimen${filtered.length === 1 ? '' : 's'}`}
           </span>
@@ -161,17 +212,24 @@ export default function App() {
           {!loading && filtered.length === 0 && (
             <div className="empty-state">
               <span className="bino">Nullus colonia</span>
-              No colonies match your search yet. Try clearing the filter — or list the first one.
+              {mineActive
+                ? "You haven't listed any colonies yet. Click “+ List a colony” to add your first."
+                : 'No colonies match your search yet. Try clearing the filter — or list the first one.'}
             </div>
           )}
           {filtered.map((l) => (
-            <Card key={l.id} l={l} onOpen={() => setDetail(l)} />
+            <Card
+              key={l.id}
+              l={l}
+              owner={!!session && l.user_id === session.user.id}
+              onOpen={() => setDetail(l)}
+            />
           ))}
         </div>
       </div>
 
       <footer>
-        FORMICARY · {listings.length} colonies listed
+        ANT SALE INTERNATIONAL · {listings.length} colonies listed
         <br />
         Listings live in a shared database — visible to everyone. Be accurate and kind.
       </footer>
@@ -188,29 +246,42 @@ export default function App() {
             ×
           </button>
         </div>
-        <div className="panel-body">{detail && <Detail l={detail} />}</div>
+        <div className="panel-body">
+          {detail && (
+            <Detail
+              l={detail}
+              owner={!!session && detail.user_id === session.user.id}
+              onEdit={() => editListing(detail)}
+              onDelete={() => deleteListing(detail)}
+              onToggleSold={() => toggleSold(detail)}
+            />
+          )}
+        </div>
       </aside>
 
-      {/* new-listing panel */}
-      <div className={'overlay' + (showForm ? ' show' : '')} onClick={() => setShowForm(false)} />
-      <aside className={'panel' + (showForm ? ' show' : '')} role="dialog" aria-modal="true" aria-label="New listing">
+      {/* new / edit listing panel */}
+      <div className={'overlay' + (showForm ? ' show' : '')} onClick={closeForm} />
+      <aside className={'panel' + (showForm ? ' show' : '')} role="dialog" aria-modal="true" aria-label={editing ? 'Edit listing' : 'New listing'}>
         <div className="panel-head">
           <div>
-            <span className="eyebrow">Field collection card</span>
-            <h2>New listing</h2>
+            <span className="eyebrow">{editing ? 'Edit specimen record' : 'Field collection card'}</span>
+            <h2>{editing ? 'Edit listing' : 'New listing'}</h2>
           </div>
-          <button className="x" onClick={() => setShowForm(false)} aria-label="Close">
+          <button className="x" onClick={closeForm} aria-label="Close">
             ×
           </button>
         </div>
         <div className="panel-body">
-          {session && (
+          {session && showForm && (
             <NewListing
+              key={editing ? editing.id : 'new'}
               user={session.user}
+              existing={editing}
               onDone={async () => {
-                setShowForm(false)
+                const wasNew = !editing
+                closeForm()
                 await loadListings()
-                setGenus('All')
+                if (wasNew) setGenus('All')
               }}
             />
           )}
@@ -238,12 +309,14 @@ export default function App() {
 }
 
 /* ------------------------------------------------------------------- card */
-function Card({ l, onOpen }) {
+function Card({ l, owner, onOpen }) {
   const workers = l.workers > 0 ? `${l.workers} workers` : 'Lone queen'
   return (
-    <button className="card" onClick={onOpen}>
+    <button className={'card' + (l.sold ? ' sold' : '')} onClick={onOpen}>
       <div className="specimen">
         <span className="catcode">{catCode(l.id)}</span>
+        {owner && <span className="owner-dot">Yours</span>}
+        {l.sold && <span className="sold-ribbon">Sold</span>}
         {l.image_url ? (
           <img src={l.image_url} alt={`${l.genus} ${l.species || ''}`} />
         ) : (
@@ -290,7 +363,7 @@ function Card({ l, onOpen }) {
 }
 
 /* ----------------------------------------------------------------- detail */
-function Detail({ l }) {
+function Detail({ l, owner, onEdit, onDelete, onToggleSold }) {
   const workers = l.workers > 0 ? `${l.workers}` : '0 (lone queen)'
   return (
     <>
@@ -301,6 +374,7 @@ function Detail({ l }) {
           <AntGlyph />
         </div>
       )}
+      {l.sold && <div className="d-soldbadge">● Marked as sold</div>}
       <div className="d-genus">{l.genus}</div>
       <h2 className="d-name">{l.species || 'sp.'}</h2>
       {l.common && <div className="d-common">{l.common}</div>}
@@ -337,6 +411,22 @@ function Detail({ l }) {
         <div className="cl">Contact the keeper</div>
         <div className="cv">{l.contact}</div>
       </div>
+      {owner && (
+        <div className="owner-actions">
+          <div className="oa-label">You listed this — manage it</div>
+          <div className="oa-btns">
+            <button className="btn ghost" onClick={onToggleSold}>
+              {l.sold ? 'Mark available' : 'Mark as sold'}
+            </button>
+            <button className="btn ghost" onClick={onEdit}>
+              Edit
+            </button>
+            <button className="btn danger" onClick={onDelete}>
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
     </>
   )
 }
@@ -356,10 +446,27 @@ const EMPTY = {
   contact: '',
 }
 
-function NewListing({ user, onDone }) {
-  const [f, setF] = useState(EMPTY)
+function NewListing({ user, existing, onDone }) {
+  const isEdit = !!existing
+  const [f, setF] = useState(() =>
+    existing
+      ? {
+          genus: existing.genus || '',
+          species: existing.species || '',
+          common: existing.common || '',
+          stage: existing.stage || 'Founding queen (claustral)',
+          workers: existing.workers ? String(existing.workers) : '',
+          currency: existing.currency || '€',
+          price: existing.price != null ? String(existing.price) : '',
+          locality: existing.locality || '',
+          tags: (existing.tags || []).join(', '),
+          description: existing.description || '',
+          contact: existing.contact || '',
+        }
+      : EMPTY,
+  )
   const [file, setFile] = useState(null)
-  const [preview, setPreview] = useState(null)
+  const [preview, setPreview] = useState(existing?.image_url || null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
@@ -384,7 +491,7 @@ function NewListing({ user, onDone }) {
     }
     setBusy(true)
 
-    let image_url = null
+    let image_url = isEdit ? existing.image_url || null : null
     if (file) {
       const path = `${user.id}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, '_')}`
       const { error: upErr } = await supabase.storage.from('listing-photos').upload(path, file)
@@ -396,27 +503,34 @@ function NewListing({ user, onDone }) {
       image_url = supabase.storage.from('listing-photos').getPublicUrl(path).data.publicUrl
     }
 
-    const { error } = await supabase.from('listings').insert([
-      {
-        user_id: user.id,
-        keeper: (user.email || '').split('@')[0] || 'keeper',
-        genus: f.genus.trim(),
-        species: f.species.trim(),
-        common: f.common.trim(),
-        stage: f.stage,
-        workers: parseInt(f.workers) || 0,
-        currency: f.currency,
-        price: Number(f.price),
-        locality: f.locality.trim(),
-        tags: f.tags
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean),
-        description: f.description.trim(),
-        contact: f.contact.trim(),
-        image_url,
-      },
-    ])
+    const base = {
+      genus: f.genus.trim(),
+      species: f.species.trim(),
+      common: f.common.trim(),
+      stage: f.stage,
+      workers: parseInt(f.workers) || 0,
+      currency: f.currency,
+      price: Number(f.price),
+      locality: f.locality.trim(),
+      tags: f.tags
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean),
+      description: f.description.trim(),
+      contact: f.contact.trim(),
+      image_url,
+    }
+
+    let error
+    if (isEdit) {
+      const res = await supabase.from('listings').update(base).eq('id', existing.id)
+      error = res.error
+    } else {
+      const res = await supabase
+        .from('listings')
+        .insert([{ ...base, user_id: user.id, keeper: (user.email || '').split('@')[0] || 'keeper' }])
+      error = res.error
+    }
 
     setBusy(false)
     if (error) {
@@ -512,7 +626,7 @@ function NewListing({ user, onDone }) {
       {err && <div className="err">{err}</div>}
 
       <button className="btn" style={{ width: '100%', padding: 15, marginTop: 6 }} onClick={publish} disabled={busy}>
-        {busy ? 'Publishing…' : 'Publish listing'}
+        {busy ? (isEdit ? 'Saving…' : 'Publishing…') : isEdit ? 'Save changes' : 'Publish listing'}
       </button>
     </>
   )
