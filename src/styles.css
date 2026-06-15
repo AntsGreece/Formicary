@@ -16,7 +16,8 @@ body{
 /* ---------- header ---------- */
 header{border-bottom:1px solid var(--line); background:var(--paper-2)}
 .bar{height:6px;background:repeating-linear-gradient(90deg,var(--moss) 0 14px,var(--moss-2) 14px 28px)}
-.head-in{max-width:1140px;margin:0 auto;padding:22px 22px 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.head-in{max-width:1140px;margin:0 auto;padding:22px 22px 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px 32px;flex-wrap:wrap}
+.head-left{flex:1 1 420px;min-width:300px}
 .wordmark{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 .wordmark h1{
   font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,40px);
@@ -32,7 +33,7 @@ header{border-bottom:1px solid var(--line); background:var(--paper-2)}
 .donate{font-family:"Space Mono",monospace;font-size:12px;letter-spacing:.04em;color:var(--amber-2);font-weight:700;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
 .donate:hover{color:var(--amber)}
 .donate-url{font-family:"Space Mono",monospace;font-size:12px;color:var(--muted);word-break:break-all}
-.head-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.head-right{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:12px}
 .authbar{font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.04em;color:var(--muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
 .authbar strong{color:var(--ink)}
 .link{background:none;border:none;cursor:pointer;font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.06em;color:var(--amber-2);padding:0;text-decoration:underline;text-underline-offset:2px}

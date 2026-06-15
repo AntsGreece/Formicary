@@ -171,14 +171,14 @@ export default function App() {
       <header>
         <div className="bar" />
         <div className="head-in">
-          <div>
+          <div className="head-left">
             <div className="wordmark">
               <h1>Ant Sale International</h1>
               <span className="tag">Ant&nbsp;·&nbsp;Marketplace</span>
             </div>
             <div className="sub">
               <p className="sub-lead">
-                Browse ant queens, colonies &amp; equipment from across the world — a free marketplace by
+                Browse ant queens, colonies &amp; equipment from across the world! A free marketplace by
                 <strong> @antsgreece</strong>.
               </p>
               <p className="sub-note">
