@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from './supabaseClient'
 
 /* ----------------------------------------------------------------- helpers */
@@ -26,6 +26,8 @@ const KINDS = {
 const kindOf = (l) => l.type || 'sale'
 // Word shown when a listing is closed out, by type
 const closedWord = (type) => (type === 'wanted' ? 'found' : type === 'list' ? 'closed' : 'sold')
+// Reports needed before a listing is auto-covered with a "reported" banner
+const REPORT_THRESHOLD = 5
 
 /* --------------------------------------------------------------------- app */
 export default function App() {
@@ -43,6 +45,7 @@ export default function App() {
   const [editing, setEditing] = useState(null) // listing being edited, or null
   const [formType, setFormType] = useState('sale') // which kind the form creates
   const [showWarn, setShowWarn] = useState(true) // legal-compliance gate on entry
+  const [verifiedIds, setVerifiedIds] = useState(() => new Set()) // user ids with a verified badge
 
   // auth session
   useEffect(() => {
@@ -51,10 +54,16 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  // load listings
+  // load listings + verified sellers
   useEffect(() => {
     loadListings()
+    loadVerified()
   }, [])
+
+  async function loadVerified() {
+    const { data, error } = await supabase.from('profiles').select('id').eq('verified', true)
+    if (!error && data) setVerifiedIds(new Set(data.map((r) => r.id)))
+  }
 
   async function loadListings() {
     setLoading(true)
@@ -66,6 +75,26 @@ export default function App() {
     else setListings(data || [])
     setLoading(false)
   }
+
+  // open a listing from a shared ?l=<id> link, once, after first load
+  const deepLinkRef = useRef(false)
+  useEffect(() => {
+    if (deepLinkRef.current || loading) return
+    deepLinkRef.current = true
+    const id = new URLSearchParams(window.location.search).get('l')
+    if (id) {
+      const found = listings.find((x) => x.id === id)
+      if (found) setDetail(found)
+    }
+  }, [loading, listings])
+
+  // keep the URL in sync with the open listing so links are shareable
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (detail) url.searchParams.set('l', detail.id)
+    else url.searchParams.delete('l')
+    window.history.replaceState(null, '', url.pathname + url.search)
+  }, [detail])
 
   // close panels on Escape
   useEffect(() => {
@@ -145,6 +174,28 @@ export default function App() {
     setEditing(l)
     setFormType(kindOf(l))
     setShowForm(true)
+  }
+
+  async function reportListing(l) {
+    if (!session) {
+      setShowAuth(true)
+      return
+    }
+    const { error } = await supabase
+      .from('reports')
+      .insert([{ listing_id: l.id, reporter_id: session.user.id }])
+    if (error) {
+      if (error.code === '23505') {
+        alert('You have already reported this listing — thanks.')
+      } else {
+        alert('Could not submit report: ' + error.message)
+      }
+      return
+    }
+    // optimistic local bump so the count + cover update immediately
+    setDetail((d) => (d && d.id === l.id ? { ...d, report_count: (d.report_count || 0) + 1 } : d))
+    alert('Thanks — this listing has been reported for review.')
+    await loadListings()
   }
 
   return (
@@ -286,6 +337,7 @@ export default function App() {
               key={l.id}
               l={l}
               owner={!!session && l.user_id === session.user.id}
+              verified={verifiedIds.has(l.user_id)}
               onOpen={() => setDetail(l)}
             />
           ))}
@@ -314,10 +366,13 @@ export default function App() {
           {detail && (
             <Detail
               l={detail}
+              user={session?.user || null}
               owner={!!session && detail.user_id === session.user.id}
+              verified={verifiedIds.has(detail.user_id)}
               onEdit={() => editListing(detail)}
               onDelete={() => deleteListing(detail)}
               onToggleSold={() => toggleSold(detail)}
+              onReport={() => reportListing(detail)}
             />
           )}
         </div>
@@ -378,7 +433,7 @@ export default function App() {
 }
 
 /* ------------------------------------------------------------------- card */
-function Card({ l, owner, onOpen }) {
+function Card({ l, owner, verified, onOpen }) {
   const type = kindOf(l)
   const isSale = type === 'sale'
   const isWanted = type === 'wanted'
@@ -387,9 +442,16 @@ function Card({ l, owner, onOpen }) {
   const itemCount = isList
     ? (l.description || '').split('\n').map((s) => s.trim()).filter(Boolean).length
     : 0
+  const reported = (l.report_count || 0) >= REPORT_THRESHOLD
 
   return (
-    <button className={'card k-' + type + (l.sold ? ' sold' : '')} onClick={onOpen}>
+    <button className={'card k-' + type + (l.sold ? ' sold' : '') + (reported ? ' reported' : '')} onClick={onOpen}>
+      {reported && (
+        <div className="reported-cover">
+          <span className="rc-big">⚑ Reported</span>
+          <span className="rc-sub">Flagged by the community — under review</span>
+        </div>
+      )}
       <div className="specimen">
         <span className={'catcode cat-' + type}>{KINDS[type].badge}</span>
         {owner && <span className="owner-dot">Yours</span>}
@@ -410,6 +472,7 @@ function Card({ l, owner, onOpen }) {
       </div>
 
       <div className="card-body">
+        {verified && <span className="verified-chip" title="Verified seller">✓ Verified seller</span>}
         {isList ? (
           <>
             <div className="genus-strip">Sales list</div>
@@ -471,16 +534,33 @@ function Card({ l, owner, onOpen }) {
 }
 
 /* ----------------------------------------------------------------- detail */
-function Detail({ l, owner, onEdit, onDelete, onToggleSold }) {
+function Detail({ l, user, owner, verified, onEdit, onDelete, onToggleSold, onReport }) {
   const type = kindOf(l)
   const isSale = type === 'sale'
   const isWanted = type === 'wanted'
   const isList = type === 'list'
   const workers = l.workers > 0 ? `${l.workers}` : '0 (lone queen)'
   const cw = closedWord(type)
+  const reports = l.report_count || 0
+  const reported = reports >= REPORT_THRESHOLD
+  const [copied, setCopied] = useState(false)
+
+  function copyShare() {
+    const url = `${window.location.origin}/?l=${l.id}`
+    const done = () => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1600)
+    }
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).then(done, done)
+    else done()
+  }
 
   return (
     <>
+      {reported && (
+        <div className="d-reported">⚑ This listing has been reported by the community and is under review. Proceed with caution.</div>
+      )}
+      {verified && <div className="d-verified">✓ Verified seller</div>}
       {isSale && l.image_url ? (
         <img className="d-img" src={l.image_url} alt="" />
       ) : (
@@ -500,6 +580,10 @@ function Detail({ l, owner, onEdit, onDelete, onToggleSold }) {
       {isWanted && (
         <div className="d-price">{l.price != null ? 'Budget: ' + (l.currency || '€') + fmt(l.price) : 'Open offer'}</div>
       )}
+
+      <button className="share-btn" onClick={copyShare} title="Copy a direct link to this listing">
+        {copied ? '✓ Link copied' : '🔗 Copy share link'}
+      </button>
 
       {(l.tags || []).length > 0 && (
         <div className="tagrow" style={{ marginBottom: 20 }}>
@@ -556,6 +640,19 @@ function Detail({ l, owner, onEdit, onDelete, onToggleSold }) {
         <div className="cv">{l.contact}</div>
       </div>
 
+      {!owner && (
+        <div className="report-row">
+          <button className="report-btn" onClick={onReport} title="Flag this listing for review">
+            ⚑ Report listing
+          </button>
+          {reports > 0 && (
+            <span className="report-count">
+              {reports} report{reports === 1 ? '' : 's'}
+            </span>
+          )}
+        </div>
+      )}
+
       {owner && (
         <div className="owner-actions">
           <div className="oa-label">You posted this — manage it</div>
@@ -570,9 +667,102 @@ function Detail({ l, owner, onEdit, onDelete, onToggleSold }) {
               Delete
             </button>
           </div>
+          {reports > 0 && <div className="oa-reports">⚑ {reports} report{reports === 1 ? '' : 's'} on this listing</div>}
         </div>
       )}
+
+      <Comments listingId={l.id} user={user} />
     </>
+  )
+}
+
+/* --------------------------------------------------------------- comments */
+function Comments({ listingId, user }) {
+  const [items, setItems] = useState([])
+  const [body, setBody] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+
+  async function load() {
+    const { data, error } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('listing_id', listingId)
+      .order('created_at', { ascending: true })
+    if (!error) setItems(data || [])
+    setLoaded(true)
+  }
+
+  useEffect(() => {
+    setLoaded(false)
+    setItems([])
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listingId])
+
+  async function post() {
+    const text = body.trim()
+    if (!text) return
+    setBusy(true)
+    const author_name = (user.email || '').split('@')[0] || 'user'
+    const { error } = await supabase
+      .from('comments')
+      .insert([{ listing_id: listingId, user_id: user.id, author_name, body: text }])
+    setBusy(false)
+    if (error) {
+      alert('Could not post comment: ' + error.message)
+      return
+    }
+    setBody('')
+    load()
+  }
+
+  async function remove(id) {
+    if (!window.confirm('Delete your comment?')) return
+    const { error } = await supabase.from('comments').delete().eq('id', id)
+    if (error) {
+      alert('Could not delete: ' + error.message)
+      return
+    }
+    load()
+  }
+
+  return (
+    <div className="comments">
+      <div className="cm-head">Comments{loaded ? ` (${items.length})` : ''}</div>
+      {loaded && items.length === 0 && <p className="cm-empty">No comments yet — start the conversation.</p>}
+      <ul className="cm-list">
+        {items.map((c) => (
+          <li className="cm-item" key={c.id}>
+            <div className="cm-meta">
+              <span className="cm-author">{c.author_name || 'user'}</span>
+              <span className="cm-date">{new Date(c.created_at).toLocaleDateString()}</span>
+            </div>
+            <div className="cm-body">{c.body}</div>
+            {user && user.id === c.user_id && (
+              <button className="cm-del" onClick={() => remove(c.id)}>
+                Delete
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {user ? (
+        <div className="cm-form">
+          <textarea
+            placeholder="Ask a question or leave a comment…"
+            value={body}
+            maxLength={500}
+            onChange={(e) => setBody(e.target.value)}
+          />
+          <button className="btn" disabled={busy || !body.trim()} onClick={post}>
+            {busy ? 'Posting…' : 'Post comment'}
+          </button>
+        </div>
+      ) : (
+        <p className="cm-login">Log in to leave a comment.</p>
+      )}
+    </div>
   )
 }
 
