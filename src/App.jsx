@@ -608,7 +608,9 @@ function Card({ l, owner, verified, myVote, onVote, onOpen }) {
             <AntGlyph />
           </div>
         )}
-        {isSale && <span className="price-tag">{(l.currency || '€') + fmt(l.price)}</span>}
+        {isSale && (
+          <span className="price-tag">{l.price != null ? (l.currency || '€') + fmt(l.price) : 'Ask'}</span>
+        )}
         {isWanted && (
           <span className="price-tag wanted-tag">
             {l.price != null ? 'Budget ' + (l.currency || '€') + fmt(l.price) : 'Open offer'}
@@ -672,10 +674,23 @@ function Card({ l, owner, verified, myVote, onVote, onOpen }) {
                   <span className="v">{workers}</span>
                 </div>
               )}
-              <div className="row">
-                <span className="k">Locality</span>
-                <span className="v">{l.locality || '—'}</span>
-              </div>
+              {isSale ? (
+                <>
+                  <div className="row">
+                    <span className="k">Collected</span>
+                    <span className="v">{l.locality || '—'}</span>
+                  </div>
+                  <div className="row">
+                    <span className="k">Seller</span>
+                    <span className="v">{l.seller_location || '—'}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="row">
+                  <span className="k">Locality</span>
+                  <span className="v">{l.locality || '—'}</span>
+                </div>
+              )}
             </div>
           </>
         )}
@@ -727,7 +742,9 @@ function Detail({ l, user, owner, verified, onEdit, onDelete, onToggleSold, onRe
       </h2>
       {l.common && <div className="d-common">{l.common}</div>}
 
-      {isSale && <div className="d-price">{(l.currency || '€') + fmt(l.price)}</div>}
+      {isSale && (
+        <div className="d-price">{l.price != null ? (l.currency || '€') + fmt(l.price) : 'Open to offers'}</div>
+      )}
       {isWanted && (
         <div className="d-price">{l.price != null ? 'Budget: ' + (l.currency || '€') + fmt(l.price) : 'Open offer'}</div>
       )}
@@ -773,10 +790,23 @@ function Detail({ l, user, owner, verified, onEdit, onDelete, onToggleSold, onRe
                 <span>{workers}</span>
               </div>
             )}
-            <div className="row">
-              <span className="k">Locality</span>
-              <span>{l.locality || '—'}</span>
-            </div>
+            {isSale ? (
+              <>
+                <div className="row">
+                  <span className="k">Collected from</span>
+                  <span>{l.locality || '—'}</span>
+                </div>
+                <div className="row">
+                  <span className="k">Seller location</span>
+                  <span>{l.seller_location || '—'}</span>
+                </div>
+              </>
+            ) : (
+              <div className="row">
+                <span className="k">Locality</span>
+                <span>{l.locality || '—'}</span>
+              </div>
+            )}
             <div className="row">
               <span className="k">{isWanted ? 'Wanted by' : 'Listed by'}</span>
               <span>{l.keeper || 'a keeper'}</span>
@@ -928,6 +958,7 @@ const EMPTY = {
   currency: '€',
   price: '',
   locality: '',
+  seller_location: '',
   tags: '',
   description: '',
   contact: '',
@@ -950,6 +981,7 @@ function NewListing({ user, existing, type = 'sale', onDone }) {
           currency: existing.currency || '€',
           price: existing.price != null ? String(existing.price) : '',
           locality: existing.locality || '',
+          seller_location: existing.seller_location || '',
           tags: (existing.tags || []).join(', '),
           description: existing.description || '',
           contact: existing.contact || '',
@@ -1020,6 +1052,7 @@ function NewListing({ user, existing, type = 'sale', onDone }) {
       currency: f.currency,
       price: f.price === '' ? null : Number(f.price),
       locality: f.locality.trim() || null,
+      seller_location: isSale ? f.seller_location.trim() || null : null,
       tags: f.tags
         .split(',')
         .map((t) => t.trim())
@@ -1067,6 +1100,20 @@ function NewListing({ user, existing, type = 'sale', onDone }) {
     <label className="fld">
       <span className="lab">{isWanted ? 'Your location' : 'Locality'}</span>
       <input className="inp" placeholder="Athens, GR" value={f.locality} onChange={(e) => set('locality', e.target.value)} />
+    </label>
+  )
+  const collectionField = (
+    <label className="fld">
+      <span className="lab">Collection locality</span>
+      <input className="inp" placeholder="e.g. Mt. Parnitha, GR" value={f.locality} onChange={(e) => set('locality', e.target.value)} />
+      <span className="hint">Where the colony was collected from.</span>
+    </label>
+  )
+  const sellerField = (
+    <label className="fld">
+      <span className="lab">Seller location</span>
+      <input className="inp" placeholder="e.g. Athens, GR" value={f.seller_location} onChange={(e) => set('seller_location', e.target.value)} />
+      <span className="hint">Where you're based / ship from.</span>
     </label>
   )
   const contactField = (
@@ -1191,7 +1238,12 @@ function NewListing({ user, existing, type = 'sale', onDone }) {
             </div>
           )}
 
-          {localityField}
+          {isWanted ? localityField : (
+            <>
+              {collectionField}
+              {sellerField}
+            </>
+          )}
 
           <label className="fld">
             <span className="lab">Tags (comma-separated)</span>
