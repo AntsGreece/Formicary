@@ -158,8 +158,8 @@ export default function App() {
             <div className="warn-eyebrow">Please read</div>
             <h2 id="warn-title">Warning</h2>
             <p>
-              ONLY publish listings about legally permitted species, using legal forms of shipping and the
-              correct permits.
+              ONLY sell or buy legally permitted species, using legal forms of shipping and the correct
+              permits.
             </p>
             <button className="btn" onClick={() => setShowWarn(false)}>
               I understand

@@ -96,7 +96,7 @@ header{border-bottom:1px solid var(--line); background:var(--paper-2)}
 }
 .price-tag{
   position:absolute;bottom:8px;right:8px;background:var(--card);border:1px solid var(--line);
-  font-family:"Space Mono",monospace;font-weight:700;font-size:13px;padding:5px 9px;border-radius:2px;
+  font-family:"Space Mono",monospace;font-weight:700;font-size:15.5px;padding:7px 12px;border-radius:2px;
 }
 
 .card-body{padding:14px 15px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
