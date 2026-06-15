@@ -677,7 +677,7 @@ function Detail({ l, user, owner, verified, onEdit, onDelete, onToggleSold, onRe
       )}
       {verified && <div className="d-verified">✓ Verified seller</div>}
       {isSale && l.image_url ? (
-        <img className="d-img" src={l.image_url} alt="" />
+        <img className={'d-img' + (reports > 0 ? ' flagged' : '')} src={l.image_url} alt="" />
       ) : (
         <div className="d-img empty-d">
           <AntGlyph />
