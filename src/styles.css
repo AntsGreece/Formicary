@@ -1,0 +1,166 @@
+:root{
+  --bg:#E6E2D5; --ink:#1E1B16; --card:#FBFAF6; --line:#CBC5B4;
+  --amber:#B5651D; --amber-2:#9A5417; --moss:#3C4838; --moss-2:#4E5C49;
+  --muted:#6B6557; --paper-2:#F3F0E7;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Inter",system-ui,sans-serif; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:"Space Mono",ui-monospace,monospace}
+.bino{font-family:"Fraunces",Georgia,serif; font-style:italic}
+
+/* ---------- header ---------- */
+header{border-bottom:1px solid var(--line); background:var(--paper-2)}
+.bar{height:6px;background:repeating-linear-gradient(90deg,var(--moss) 0 14px,var(--moss-2) 14px 28px)}
+.head-in{max-width:1140px;margin:0 auto;padding:22px 22px 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.wordmark{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.wordmark h1{
+  font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:clamp(28px,5vw,40px);
+  letter-spacing:.01em;margin:0;line-height:.95;
+}
+.wordmark .tag{font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.sub{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:40ch}
+.head-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.authbar{font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.04em;color:var(--muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.authbar strong{color:var(--ink)}
+.link{background:none;border:none;cursor:pointer;font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.06em;color:var(--amber-2);padding:0;text-decoration:underline;text-underline-offset:2px}
+.link:hover{color:var(--amber)}
+
+.btn{
+  font-family:"Space Mono",monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+  border:none;cursor:pointer;padding:13px 20px;border-radius:2px;background:var(--amber);color:#fff;
+  transition:background .15s ease, transform .05s ease;white-space:nowrap;
+}
+.btn:hover{background:var(--amber-2)}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.ghost:hover{background:var(--paper-2);border-color:var(--muted)}
+:focus-visible{outline:2.5px solid var(--amber);outline-offset:2px}
+
+/* ---------- controls ---------- */
+.wrap{max-width:1140px;margin:0 auto;padding:24px 22px 64px}
+.controls{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.search{flex:1;min-width:220px;position:relative}
+.search input{
+  width:100%;padding:12px 14px 12px 38px;border:1px solid var(--line);border-radius:2px;background:var(--card);
+  font-family:"Space Mono",monospace;font-size:13px;color:var(--ink);
+}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.5}
+.count{font-family:"Space Mono",monospace;font-size:12px;color:var(--muted);letter-spacing:.06em;white-space:nowrap}
+
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 26px}
+.chip{
+  font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.06em;cursor:pointer;
+  padding:7px 12px;border:1px solid var(--line);border-radius:100px;background:transparent;color:var(--muted);
+  transition:all .12s ease;
+}
+.chip:hover{border-color:var(--moss)}
+.chip.on{background:var(--moss);border-color:var(--moss);color:#F3F0E7}
+.chip.on .bino{color:#F3F0E7}
+.chip .bino{color:var(--ink)}
+
+/* ---------- grid + cards ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:18px}
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:3px;overflow:hidden;cursor:pointer;
+  display:flex;flex-direction:column;transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  text-align:left;padding:0;font:inherit;color:inherit;
+}
+.card:hover{border-color:var(--moss);box-shadow:0 8px 22px -14px rgba(30,27,22,.4);transform:translateY(-2px)}
+
+.specimen{position:relative;background:var(--paper-2);aspect-ratio:4/3;overflow:hidden;border-bottom:1px solid var(--line)}
+.specimen img{width:100%;height:100%;object-fit:cover;display:block}
+.specimen .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:.28}
+.catcode{
+  position:absolute;top:0;left:0;background:var(--moss);color:#F3F0E7;
+  font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.14em;padding:5px 9px;border-bottom-right-radius:3px;
+}
+.price-tag{
+  position:absolute;bottom:8px;right:8px;background:var(--card);border:1px solid var(--line);
+  font-family:"Space Mono",monospace;font-weight:700;font-size:13px;padding:5px 9px;border-radius:2px;
+}
+
+.card-body{padding:14px 15px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
+.genus-strip{font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+.name{font-family:"Fraunces",Georgia,serif;font-style:italic;font-size:21px;line-height:1.1;margin:-2px 0 0}
+.name .common{font-style:normal;font-family:"Inter",sans-serif;font-size:12px;color:var(--muted);display:block;margin-top:3px;font-weight:500}
+
+.ledger{border-top:1px solid var(--line);margin-top:auto}
+.ledger .row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-family:"Space Mono",monospace;font-size:11.5px}
+.ledger .row:last-child{border-bottom:none}
+.ledger .k{color:var(--muted);letter-spacing:.05em}
+.ledger .v{text-align:right;color:var(--ink)}
+
+.tagrow{display:flex;gap:6px;flex-wrap:wrap}
+.tg{font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.04em;padding:3px 8px;border:1px solid var(--line);border-radius:100px;color:var(--muted)}
+
+.empty-state{grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--muted)}
+.empty-state .bino{font-size:26px;color:var(--ink);display:block;margin-bottom:8px}
+
+/* ---------- overlay / panels ---------- */
+.overlay{position:fixed;inset:0;background:rgba(30,27,22,.55);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .25s ease;z-index:40}
+.overlay.show{opacity:1;pointer-events:auto}
+.panel{
+  position:fixed;top:0;right:0;height:100%;width:min(460px,100%);background:var(--bg);z-index:50;
+  box-shadow:-20px 0 50px -20px rgba(0,0,0,.5);transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;
+}
+.panel.show{transform:translateX(0)}
+.panel-head{padding:20px 22px;border-bottom:1px solid var(--line);background:var(--paper-2);display:flex;justify-content:space-between;align-items:center}
+.panel-head h2{font-family:"Fraunces",serif;font-weight:600;font-size:20px;margin:0}
+.panel-head .eyebrow{font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber);display:block;margin-bottom:3px}
+.x{background:none;border:none;cursor:pointer;font-size:24px;line-height:1;color:var(--muted);padding:4px 8px}
+.x:hover{color:var(--ink)}
+.panel-body{padding:22px;overflow-y:auto;flex:1}
+
+/* ---------- form ---------- */
+label.fld{display:block;margin-bottom:16px}
+label.fld .lab{font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px}
+.inp,select,textarea{
+  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:2px;background:var(--card);
+  font-family:"Inter",sans-serif;font-size:14px;color:var(--ink);
+}
+textarea{resize:vertical;min-height:78px}
+select{cursor:pointer}
+.two{display:flex;gap:12px}
+.two>*{flex:1}
+.hint{font-family:"Space Mono",monospace;font-size:10px;color:var(--muted);margin-top:5px;letter-spacing:.03em}
+.drop{border:1.5px dashed var(--line);border-radius:3px;padding:18px;text-align:center;cursor:pointer;background:var(--card);transition:border-color .15s}
+.drop:hover{border-color:var(--moss)}
+.drop.has{padding:0;border-style:solid;overflow:hidden}
+.drop img{width:100%;display:block;max-height:180px;object-fit:cover}
+.drop .dtext{font-family:"Space Mono",monospace;font-size:12px;color:var(--muted)}
+.err{color:var(--amber-2);font-family:"Space Mono",monospace;font-size:11px;margin-top:6px}
+.notice{font-family:"Space Mono",monospace;font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.6}
+
+/* ---------- detail ---------- */
+.d-img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:3px;border:1px solid var(--line);background:var(--paper-2);margin-bottom:18px}
+.d-img.empty-d{display:flex;align-items:center;justify-content:center}
+.d-genus{font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--amber);margin-bottom:4px}
+.d-name{font-family:"Fraunces",serif;font-style:italic;font-size:32px;line-height:1.05;margin:0 0 4px}
+.d-common{color:var(--muted);font-size:14px;margin-bottom:18px}
+.d-price{font-family:"Space Mono",monospace;font-weight:700;font-size:22px;margin-bottom:20px}
+.d-led{border-top:1px solid var(--line);margin-bottom:20px}
+.d-led .row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-family:"Space Mono",monospace;font-size:13px}
+.d-led .k{color:var(--muted)}
+.d-desc{font-size:14px;line-height:1.65;margin-bottom:22px;white-space:pre-wrap}
+.d-contact{background:var(--moss);color:#F3F0E7;padding:16px;border-radius:3px}
+.d-contact .cl{font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;opacity:.75;margin-bottom:5px}
+.d-contact .cv{font-family:"Space Mono",monospace;font-size:15px;word-break:break-word}
+
+footer{max-width:1140px;margin:0 auto;padding:0 22px 50px;color:var(--muted);font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.04em;line-height:1.8}
+
+@media (max-width:520px){
+  .name{font-size:19px}
+  .two{flex-direction:column;gap:0}
+  .head-right{align-items:flex-start}
+  .authbar{justify-content:flex-start}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important}
+}
