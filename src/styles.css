@@ -319,6 +319,14 @@ footer{max-width:1180px;margin:0 auto;padding:0 14px 50px;color:var(--muted);fon
 }
 .report-btn:hover{color:var(--amber-2);border-color:var(--amber-2)}
 .report-count{font-family:"Space Mono",monospace;font-size:11px;color:var(--amber-2);letter-spacing:.04em}
+
+/* report flag on the card (top-right) */
+.report-flag{
+  position:absolute;top:0;right:0;z-index:4;display:flex;align-items:center;gap:4px;
+  background:var(--amber-2);color:#fff;font-family:"Space Mono",monospace;font-size:10px;font-weight:700;letter-spacing:.06em;
+  padding:4px 8px;border-bottom-left-radius:3px;
+}
+.report-flag.below{top:24px}
 .oa-reports{font-family:"Space Mono",monospace;font-size:11px;color:var(--amber-2);margin-top:10px;letter-spacing:.03em}
 
 /* ---------- share link button (detail) ---------- */

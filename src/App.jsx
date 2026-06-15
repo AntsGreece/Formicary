@@ -455,6 +455,11 @@ function Card({ l, owner, verified, onOpen }) {
       <div className="specimen">
         <span className={'catcode cat-' + type}>{KINDS[type].badge}</span>
         {owner && <span className="owner-dot">Yours</span>}
+        {(l.report_count || 0) > 0 && (
+          <span className={'report-flag' + (owner ? ' below' : '')} title={`${l.report_count} report${l.report_count === 1 ? '' : 's'}`}>
+            ⚑ {l.report_count}
+          </span>
+        )}
         {l.sold && <span className="sold-ribbon">{closedWord(type)}</span>}
         {isSale && l.image_url ? (
           <img src={l.image_url} alt={`${l.genus} ${l.species || ''}`} />
