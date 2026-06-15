@@ -158,8 +158,8 @@ export default function App() {
             <div className="warn-eyebrow">Please read</div>
             <h2 id="warn-title">Warning</h2>
             <p>
-              ONLY sell or buy legally permitted species, using legal forms of shipping and the correct
-              permits.
+              ONLY publish listings about legally permitted species, using legal forms of shipping and the
+              correct permits.
             </p>
             <button className="btn" onClick={() => setShowWarn(false)}>
               I understand
@@ -181,9 +181,6 @@ export default function App() {
                 Browse ant queens, colonies &amp; equipment from across the world! A free marketplace by
                 <strong> @antsgreece</strong>.
               </p>
-              <p className="sub-note">
-                ⚠ Still in development. Buy &amp; sell at your own risk and watch out for scammers and frauds.
-              </p>
               <p className="sub-donate">
                 Donations keep the page running.{' '}
                 <a className="donate" href="https://www.paypal.com/paypalme/antsgreece" target="_blank" rel="noopener noreferrer">
@@ -194,6 +191,10 @@ export default function App() {
             </div>
           </div>
           <div className="head-right">
+            <p className="head-warn">
+              ⚠ Still in development. Buy &amp; sell at your own risk: watch out for scammers, frauds and
+              illegal listings.
+            </p>
             <div className="authbar">
               {session ? (
                 <>
