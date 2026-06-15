@@ -25,6 +25,32 @@ function ThumbIcon() {
 const fmt = (n) => (Number.isInteger(Number(n)) ? Number(n) : Number(n).toFixed(2))
 const stageShort = (s) => (s ? s.replace(' (claustral)', '').replace(' (eggs/larvae)', '') : '—')
 
+// A sold listing is automatically removed this many days after it was marked sold
+const SOLD_TTL_DAYS = 5
+
+// Re-encode an uploaded photo to a smaller JPEG so it uses less storage/bandwidth.
+// Falls back to the original file on any failure or if compression doesn't help.
+async function compressImage(file, { maxDim = 1600, quality = 0.82 } = {}) {
+  if (!file || !file.type.startsWith('image/') || file.type === 'image/gif') return file
+  try {
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height))
+    const width = Math.round(bitmap.width * scale)
+    const height = Math.round(bitmap.height * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(bitmap, 0, 0, width, height)
+    bitmap.close?.()
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', quality))
+    if (!blob || blob.size >= file.size) return file // no real saving — keep original
+    return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' })
+  } catch {
+    return file
+  }
+}
+
 // The three kinds of listing the marketplace supports
 const KINDS = {
   sale: { label: 'For sale', filter: 'For sale', badge: 'For sale', title: 'List a colony', eyebrow: 'Field collection card' },
@@ -138,7 +164,15 @@ export default function App() {
       .select('*')
       .order('created_at', { ascending: false })
     if (error) console.error('Load failed:', error.message)
-    else setListings(data || [])
+    else {
+      // Hide listings that have been sold for longer than the TTL — the database
+      // job purges them for good, this just makes them disappear right away.
+      const cutoff = Date.now() - SOLD_TTL_DAYS * 24 * 60 * 60 * 1000
+      const visible = (data || []).filter(
+        (l) => !(l.sold && l.sold_at && new Date(l.sold_at).getTime() < cutoff),
+      )
+      setListings(visible)
+    }
     setLoading(false)
   }
 
@@ -225,12 +259,14 @@ export default function App() {
   }
 
   async function toggleSold(l) {
-    const { error } = await supabase.from('listings').update({ sold: !l.sold }).eq('id', l.id)
+    const nowSold = !l.sold
+    const sold_at = nowSold ? new Date().toISOString() : null
+    const { error } = await supabase.from('listings').update({ sold: nowSold, sold_at }).eq('id', l.id)
     if (error) {
       alert('Could not update: ' + error.message)
       return
     }
-    const updated = { ...l, sold: !l.sold }
+    const updated = { ...l, sold: nowSold, sold_at }
     setDetail((d) => (d && d.id === l.id ? updated : d))
     await loadListings()
   }
@@ -960,8 +996,11 @@ function NewListing({ user, existing, type = 'sale', onDone }) {
 
     let image_url = isEdit ? existing.image_url || null : null
     if (isSale && file) {
-      const path = `${user.id}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, '_')}`
-      const { error: upErr } = await supabase.storage.from('listing-photos').upload(path, file)
+      const upload = await compressImage(file)
+      const path = `${user.id}/${Date.now()}-${upload.name.replace(/[^\w.\-]/g, '_')}`
+      const { error: upErr } = await supabase.storage
+        .from('listing-photos')
+        .upload(path, upload, { contentType: upload.type })
       if (upErr) {
         setErr('Photo upload failed: ' + upErr.message)
         setBusy(false)
