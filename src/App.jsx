@@ -146,7 +146,14 @@ export default function App() {
               <span className="tag">Ant&nbsp;·&nbsp;Colony&nbsp;Exchange</span>
             </div>
             <p className="sub">
-              A specimen catalog for keepers. Browse queens, founding colonies, and established nests — or list your own.
+              Browse ant queens, colonies and equipment from across the world! This is a free-to-use ant
+              marketplace created by @antsgreece. It's still in development, so please be careful of scammers
+              and frauds — purchase from sellers at your own risk. Donations are welcome and necessary to keep
+              the page running.{' '}
+              <a className="donate" href="https://www.paypal.com/paypalme/antsgreece" target="_blank" rel="noopener noreferrer">
+                Donate via PayPal →
+              </a>{' '}
+              <span className="donate-url">https://www.paypal.com/paypalme/antsgreece</span>
             </p>
           </div>
           <div className="head-right">
