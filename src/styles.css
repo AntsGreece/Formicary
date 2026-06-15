@@ -23,7 +23,12 @@ header{border-bottom:1px solid var(--line); background:var(--paper-2)}
   letter-spacing:.01em;margin:0;line-height:.95;
 }
 .wordmark .tag{font-family:"Space Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
-.sub{margin:6px 0 0;color:var(--muted);font-size:14px;max-width:62ch;line-height:1.55}
+.sub{margin:8px 0 0;max-width:60ch;display:flex;flex-direction:column;gap:5px}
+.sub p{margin:0}
+.sub-lead{color:var(--ink);font-size:14px;line-height:1.5}
+.sub-lead strong{color:var(--amber-2);font-weight:600}
+.sub-note{font-family:"Space Mono",monospace;font-size:11.5px;letter-spacing:.02em;color:var(--amber-2);line-height:1.45}
+.sub-donate{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .donate{font-family:"Space Mono",monospace;font-size:12px;letter-spacing:.04em;color:var(--amber-2);font-weight:700;text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
 .donate:hover{color:var(--amber)}
 .donate-url{font-family:"Space Mono",monospace;font-size:12px;color:var(--muted);word-break:break-all}
@@ -207,3 +212,65 @@ footer{max-width:1140px;margin:0 auto;padding:0 22px 50px;color:var(--muted);fon
 @media (prefers-reduced-motion:reduce){
   *{transition:none!important}
 }
+
+/* ---------- listing types (wanted ads + sales lists) ---------- */
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.actions .btn{padding:11px 16px;font-size:11px}
+
+.chips.kinds{margin:0 0 22px}
+
+/* type badge on cards / detail */
+.kind-badge{
+  position:absolute;top:0;right:0;z-index:2;
+  font-family:"Space Mono",monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:#F3F0E7;padding:4px 8px;border-bottom-left-radius:3px;background:var(--moss);
+}
+.kind-badge.wanted{background:var(--amber-2)}
+.kind-badge.list{background:var(--moss)}
+.d-img .kind-badge{top:0;right:0;border-bottom-left-radius:3px}
+
+/* wanted budget tag reuses price-tag box */
+.wanted-tag{font-weight:400;font-size:11.5px}
+
+/* sales-list cards */
+.name.listname,.d-name.listname{font-style:normal;font-family:"Fraunces",serif;font-weight:600}
+.d-name.listname{font-size:26px}
+.list-preview{
+  font-family:"Space Mono",monospace;font-size:11px;line-height:1.5;color:var(--muted);
+  white-space:pre-wrap;margin:0;max-height:64px;overflow:hidden;
+  -webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);
+          mask-image:linear-gradient(180deg,#000 60%,transparent);
+}
+.d-list{
+  font-family:"Space Mono",monospace;font-size:13px;line-height:1.7;color:var(--ink);
+  white-space:pre-wrap;background:var(--card);border:1px solid var(--line);border-radius:3px;
+  padding:14px 16px;margin:0 0 20px;overflow-x:auto;
+}
+.listinput{min-height:200px;font-family:"Space Mono",monospace;font-size:13px;line-height:1.6}
+
+/* catalog tag now shows the listing type instead of ANT-#### */
+.catcode.cat-sale{background:var(--moss)}
+.catcode.cat-wanted{background:var(--amber-2)}
+.catcode.cat-list{background:var(--moss)}
+
+/* ---------- legal-compliance warning popup (on entry) ---------- */
+.warn-overlay{
+  position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;
+  background:rgba(30,27,22,.6);backdrop-filter:blur(3px);
+  animation:warnfade .2s ease;
+}
+@keyframes warnfade{from{opacity:0}to{opacity:1}}
+.warn-box{
+  position:relative;background:var(--bg);border:1px solid var(--line);border-top:4px solid var(--amber-2);
+  border-radius:4px;max-width:420px;width:100%;padding:30px 28px 26px;
+  box-shadow:0 30px 70px -25px rgba(0,0,0,.6);text-align:center;
+}
+.warn-x{
+  position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;
+  font-size:26px;line-height:1;color:var(--muted);padding:4px 8px;
+}
+.warn-x:hover{color:var(--ink)}
+.warn-eyebrow{font-family:"Space Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin-bottom:6px}
+.warn-box h2{font-family:"Fraunces",serif;font-weight:600;font-size:26px;margin:0 0 12px;color:var(--amber-2)}
+.warn-box p{font-size:14.5px;line-height:1.6;color:var(--ink);margin:0 0 22px}
+.warn-box .btn{width:100%}
