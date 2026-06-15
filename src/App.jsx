@@ -14,6 +14,14 @@ function AntGlyph() {
   )
 }
 
+function ThumbIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+    </svg>
+  )
+}
+
 const fmt = (n) => (Number.isInteger(Number(n)) ? Number(n) : Number(n).toFixed(2))
 const stageShort = (s) => (s ? s.replace(' (claustral)', '').replace(' (eggs/larvae)', '') : '—')
 
@@ -46,6 +54,7 @@ export default function App() {
   const [formType, setFormType] = useState('sale') // which kind the form creates
   const [showWarn, setShowWarn] = useState(true) // legal-compliance gate on entry
   const [verifiedIds, setVerifiedIds] = useState(() => new Set()) // user ids with a verified badge
+  const [myVotes, setMyVotes] = useState({}) // { listing_id: 1 | -1 } for the current user
 
   // auth session
   useEffect(() => {
@@ -63,6 +72,63 @@ export default function App() {
   async function loadVerified() {
     const { data, error } = await supabase.from('profiles').select('id').eq('verified', true)
     if (!error && data) setVerifiedIds(new Set(data.map((r) => r.id)))
+  }
+
+  // load the current user's votes whenever the session changes
+  useEffect(() => {
+    loadMyVotes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session])
+
+  async function loadMyVotes() {
+    if (!session) {
+      setMyVotes({})
+      return
+    }
+    const { data, error } = await supabase.from('votes').select('listing_id, value').eq('user_id', session.user.id)
+    if (!error && data) setMyVotes(Object.fromEntries(data.map((v) => [v.listing_id, v.value])))
+  }
+
+  // apply a vote change to a listing's up/down counts in local state
+  function adjustVotes(x, prev, next) {
+    let up = x.up_count || 0
+    let down = x.down_count || 0
+    if (prev === 1) up -= 1
+    if (prev === -1) down -= 1
+    if (next === 1) up += 1
+    if (next === -1) down += 1
+    return { ...x, up_count: Math.max(0, up), down_count: Math.max(0, down) }
+  }
+
+  async function vote(l, value) {
+    if (!session) {
+      setShowAuth(true)
+      return
+    }
+    const uid = session.user.id
+    const prev = myVotes[l.id] || 0
+    const next = prev === value ? 0 : value // clicking your current vote again clears it
+    // optimistic update so the card responds instantly
+    setMyVotes((m) => ({ ...m, [l.id]: next }))
+    setListings((ls) => ls.map((x) => (x.id === l.id ? adjustVotes(x, prev, next) : x)))
+    setDetail((d) => (d && d.id === l.id ? adjustVotes(d, prev, next) : d))
+
+    let error
+    if (next === 0) {
+      const r = await supabase.from('votes').delete().eq('listing_id', l.id).eq('user_id', uid)
+      error = r.error
+    } else {
+      const r = await supabase
+        .from('votes')
+        .upsert({ listing_id: l.id, user_id: uid, value: next }, { onConflict: 'listing_id,user_id' })
+      error = r.error
+    }
+    if (error) {
+      alert('Could not save your vote: ' + error.message)
+      // resync from the server on failure
+      await loadListings()
+      await loadMyVotes()
+    }
   }
 
   async function loadListings() {
@@ -338,6 +404,8 @@ export default function App() {
               l={l}
               owner={!!session && l.user_id === session.user.id}
               verified={verifiedIds.has(l.user_id)}
+              myVote={myVotes[l.id] || 0}
+              onVote={(v) => vote(l, v)}
               onOpen={() => setDetail(l)}
             />
           ))}
@@ -433,7 +501,7 @@ export default function App() {
 }
 
 /* ------------------------------------------------------------------- card */
-function Card({ l, owner, verified, onOpen }) {
+function Card({ l, owner, verified, myVote, onVote, onOpen }) {
   const type = kindOf(l)
   const isSale = type === 'sale'
   const isWanted = type === 'wanted'
@@ -444,8 +512,44 @@ function Card({ l, owner, verified, onOpen }) {
     : 0
   const reported = (l.report_count || 0) >= REPORT_THRESHOLD
 
+  const votes = (
+    <div className="votes" onClick={(e) => e.stopPropagation()}>
+      <button
+        className={'vote up' + (myVote === 1 ? ' on' : '')}
+        onClick={() => onVote(1)}
+        aria-label="Thumbs up"
+        title="Thumbs up"
+      >
+        <ThumbIcon />
+        <span className="vnum">{l.up_count || 0}</span>
+      </button>
+      <button
+        className={'vote down' + (myVote === -1 ? ' on' : '')}
+        onClick={() => onVote(-1)}
+        aria-label="Thumbs down"
+        title="Thumbs down"
+      >
+        <ThumbIcon />
+        <span className="vnum">{l.down_count || 0}</span>
+      </button>
+    </div>
+  )
+
   return (
-    <button className={'card k-' + type + (l.sold ? ' sold' : '') + (reported ? ' reported' : '')} onClick={onOpen}>
+    <div
+      className={
+        'card k-' + type + (l.sold ? ' sold' : '') + (reported ? ' reported' : '') + ((l.report_count || 0) > 0 ? ' flagged' : '')
+      }
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
+    >
       {reported && (
         <div className="reported-cover">
           <span className="rc-big">⚑ Reported</span>
@@ -481,7 +585,10 @@ function Card({ l, owner, verified, onOpen }) {
         {isList ? (
           <>
             <div className="genus-strip">Sales list</div>
-            <h3 className="name listname">{l.title || 'Stock list'}</h3>
+            <div className="name-row">
+              <h3 className="name listname">{l.title || 'Stock list'}</h3>
+              {votes}
+            </div>
             {l.description && <p className="list-preview">{l.description}</p>}
             <div className="ledger">
               <div className="row">
@@ -497,10 +604,13 @@ function Card({ l, owner, verified, onOpen }) {
         ) : (
           <>
             <div className="genus-strip">{isWanted ? 'Looking for' : l.genus}</div>
-            <h3 className="name">
-              {isWanted ? l.genus + (l.species ? ' ' + l.species : '') : l.species || 'sp.'}
-              {l.common && <span className="common">{l.common}</span>}
-            </h3>
+            <div className="name-row">
+              <h3 className="name">
+                {isWanted ? l.genus + (l.species ? ' ' + l.species : '') : l.species || 'sp.'}
+                {l.common && <span className="common">{l.common}</span>}
+              </h3>
+              {votes}
+            </div>
             {(l.tags || []).length > 0 && (
               <div className="tagrow">
                 {(l.tags || []).slice(0, 3).map((t) => (
@@ -534,7 +644,7 @@ function Card({ l, owner, verified, onOpen }) {
           </>
         )}
       </div>
-    </button>
+    </div>
   )
 }
 
